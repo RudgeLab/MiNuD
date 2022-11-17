@@ -5,7 +5,7 @@ with open('README.md', 'r') as ld:
     long_description = ld.read()
 
 setup(name='minud',
-    version='1.0a1',
+    version='1.0.0',
     author='Gonzalo Vidal',
     author_email='gsvidal@uc.cl',
     description='MINuD: a tool for the analysis of Mitochondrial Nucleoids Distribution',
