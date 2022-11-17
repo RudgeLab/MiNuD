@@ -24,6 +24,7 @@ setup(name='minud',
         'matplotlib',
         'seaborn',
         'skimage',
+    	'openpyxl'
         ],
     setup_requires=[
         'numpy', 
@@ -32,6 +33,7 @@ setup(name='minud',
         'matplotlib',
         'seaborn',
         'skimage',
+    	'openpyxl'
         ],
     packages=find_packages(),
     python_requires='>=3'
