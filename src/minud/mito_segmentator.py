@@ -5,15 +5,15 @@ import pandas as pd
 from scipy import ndimage as ndi
 import seaborn as sns
 
-from skimage import io #to load the imported image as ndarray
-from skimage import data, color
-from skimage.util import img_as_ubyte
-from skimage.filters import try_all_threshold
-from skimage.filters import threshold_otsu # segmentacion de OMM
-from skimage.filters import threshold_triangle, threshold_yen # segmentacion de clusters nucloides
-from skimage.morphology import remove_small_objects
-from skimage.segmentation import clear_border
-from skimage.measure import find_contours
+from scikit-image import io #to load the imported image as ndarray
+from scikit-image import data, color
+from scikit-image.util import img_as_ubyte
+from scikit-image.filters import try_all_threshold
+from scikit-image.filters import threshold_otsu # OMM segmentation
+from scikit-image.filters import threshold_triangle, threshold_yen # NUC segmentation
+from scikit-image.morphology import remove_small_objects
+from scikit-image.segmentation import clear_border
+from scikit-image.measure import find_contours
 
 
 class mito_segmentator():
@@ -41,7 +41,7 @@ class mito_segmentator():
         
     def _segmentator(self, path_mito, path_nuc, path_segmito, path_segnuc):
         '''
-        Segmentacion de mitocondrias y obtencion de datos relevantes por frame
+        Segmentation of mitochondria and nucleoids and obtention of data
         '''
         if path_segmito == False:
             method_mito = f'from image {self.threshold_mito}'
@@ -50,7 +50,7 @@ class mito_segmentator():
             method_nuc = f'from image {self.threshold_nuc}'
         else:  method_nuc = f'from mask {self.threshold_seg}'
         #Get files
-        file_omm = os.path.join(path_mito) #obtencion de la imagen
+        file_omm = os.path.join(path_mito)
         file_nuc = os.path.join(path_nuc)
         if path_segmito:
             file_segmito = os.path.join(path_segmito)
@@ -60,7 +60,7 @@ class mito_segmentator():
             loaded_nucmask = io.imread(file_segnuc)
 
         #Read files as images
-        imraw_omm = io.imread(file_omm) #imagen original
+        imraw_omm = io.imread(file_omm) #original image
         imraw_nuc = io.imread(file_nuc)
         
         #adaptor for 2d images only 1 time
@@ -74,21 +74,21 @@ class mito_segmentator():
                 iomm = loaded_mitomask[:,:,:,0] #https://stackoverflow.com/questions/36354639/python-list-slicing-with-string-argument
             if self.seg_type == 'fiji':
                 iomm = loaded_mitomask
-            iomm = imraw_omm #imraw[:,:,:,channel_omm] #imagen en el canal correspondiente a OMM
+            iomm = imraw_omm #imraw[:,:,:,channel_omm] #image in the OMM channel
         else: iomm = loaded_mitomask[:,:,:,0] #https://stackoverflow.com/questions/36354639/python-list-slicing-with-string-argument
 
         #TODO solve for 2 dimensions
                  
                  
         if path_segmito == False:
-            iomm = imraw_omm #imraw[:,:,:,channel_omm] #imagen en el canal correspondiente a OMM
+            iomm = imraw_omm #imraw[:,:,:,channel_omm] #image in the OMM channel
         else: iomm = loaded_mitomask[:,:,:,0] #https://stackoverflow.com/questions/36354639/python-list-slicing-with-string-argument
 
         if path_segnuc == False:
-            inuc = imraw_nuc #imraw[:,:,:,channel_omm] #imagen en el canal correspondiente a OMM
+            inuc = imraw_nuc #imraw[:,:,:,channel_omm] #image in the OMM channel
         else: inuc = loaded_nucmask[:,:,:,0]
 
-        t,x,y = iomm.shape #obtiene el tamano de la imagen
+        t,x,y = iomm.shape #get image shape
 
         #Define the data structure
         columns = { 'Frame':[], 'Object':[], 'Method':[],
@@ -98,7 +98,7 @@ class mito_segmentator():
         for i in range(t-1):
             imraw_mito_frame = imraw_omm[i,:,:]
             imraw_nuc_frame = imraw_nuc[i,:,:]
-            im_omm = iomm[i,:,:] #imagen en el canal c
+            im_omm = iomm[i,:,:] #image at frame i
             im_nuc = inuc[i,:,:]
 
             #segmentation
@@ -131,7 +131,7 @@ class mito_segmentator():
             elif self.remove_not_overlaped == 'nuc':
                 binary_rso_nuc = binary_rso_nuc*binary_rso_omm
             elif self.remove_not_overlaped == 'both':
-                # NO FUNCIONA BIEN, RESOLVER QUEDA LO MISMO PARA NUC Y MITO
+                #TODO review this part
                 binary_rso_omm = binary_rso_nuc*binary_rso_omm
                 binary_rso_nuc = binary_rso_nuc*binary_rso_omm
             else: pass
@@ -141,7 +141,7 @@ class mito_segmentator():
             labeled_nuc, num_nuc = ndi.label(binary_rso_nuc)
 
             #calculations
-            area_tomm = np.sum(binary_rso_omm)*0.0018#23.47**2 #this transforms it into um?
+            area_tomm = np.sum(binary_rso_omm)*0.0018#23.47**2 #this transforms pixels into um #TODO make this an argument
             area_tnuc = np.sum(binary_rso_nuc)*0.0018#23.47**2
 
             for m in range(1, num_omm):          
@@ -167,19 +167,19 @@ class mito_segmentator():
             method_nuc = f'from image {self.threshold_nuc}'
         else:  method_nuc = f'from mask {self.threshold_seg}'
         all_data_df = pd.DataFrame()
-        #folders = range(1,8) # si las carpetas son llamadas con numeros así se podrían acceder, desde el primero hasta antes del ultimo
-        for f in folders: #accede a las carpetas
+        #folders = range(1,8) # folders can be called numerically access them easily
+        for f in folders: #access to folders
             path_mito = False
             path_nuc = False
             path_segmito = False
             path_segnuc = False
             listOfFiles = os.listdir(rootdir + str(f))
             pattern0 = pattern_file
-            pattern1 = pattern_mito #patron para reconocer imagenes de omm
-            pattern2 = pattern_nuc #patron para reconocer imagenes de nuc
+            pattern1 = pattern_mito # pattern to recognize OMM images
+            pattern2 = pattern_nuc # pattern to recognize NUC images
             pattern3 = pattern_segmito
             pattern4 = pattern_segnuc
-            for entry in listOfFiles: #lee los archivos en cada carpeta
+            for entry in listOfFiles: #reads the files in the folder
                 if fnmatch.fnmatch(entry, pattern0):
                     print('going'+ str(f))
                     if fnmatch.fnmatch(entry, pattern1):
@@ -200,8 +200,8 @@ class mito_segmentator():
                         print(entry)
                     else: continue
             print('--------------------')
-            mito_df = self._segmentator(path_mito, path_nuc, path_segmito, path_segnuc) # medida en pixeles ~0.0078um2,  pixeles 1 nucleoide segun diamtro
-            mito_df['Folder']= f #se puede cambiar por otro nombre, cual?
+            mito_df = self._segmentator(path_mito, path_nuc, path_segmito, path_segnuc)
+            mito_df['Folder']= f 
             all_data_df = all_data_df.append(mito_df, ignore_index=True)
             self.raw_data = all_data_df
             
